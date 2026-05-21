@@ -3,85 +3,189 @@ title: "Android SDK"
 description: "Embed Zennopay checkout in your Android app."
 ---
 
-<Note>
-  The Android SDK is in active development. Maven Central publish is pending —
-  coordinates below will work once the artifact is published. 🚧
-</Note>
+The Zennopay Android SDK is a Stripe-Checkout-style integration: the SDK
+opens the Zennopay checkout web inside a Chrome Custom Tab (a system browser
+tab), then receives the result via a partner-defined deep-link. There is no
+embedded WebView — the user always sees the real
+`https://checkout.zennopay.com` URL in a system-rendered address bar.
 
 ## Requirements
 
-- minSdk 24 (Android 7.0)
+- `minSdk` 24 (Android 7.0)
+- `compileSdk` 34
 - Kotlin 1.9+
 - AndroidX
 
 ## Install via Gradle
 
-```kotlin
-// settings.gradle.kts
-dependencyResolutionManagement {
-  repositories {
-    mavenCentral()
-  }
-}
+<Note>
+  Maven Central publishing for `com.zennopay:sdk` is **pending**. Until the
+  artifact is on a public Maven repo, use one of the two interim options below.
+</Note>
 
+The eventual coordinates will be:
+
+```kotlin
 // app/build.gradle.kts
 dependencies {
   implementation("com.zennopay:sdk:0.1.0")
 }
 ```
 
-## Quickstart
+### Option A — publish to `mavenLocal()` from a source checkout
+
+```bash
+git clone https://github.com/amanpal108/zennopay-android-sdk
+cd zennopay-android-sdk
+./gradlew :zennopay:publishToMavenLocal
+```
+
+Then in your app's `settings.gradle.kts`:
 
 ```kotlin
-import com.zennopay.Zennopay
-import com.zennopay.PaymentResult
-
-class CheckoutActivity : AppCompatActivity() {
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-
-    // 1. Your backend creates the intent + mints the JWT
-    val intentId = "zp_AbCd1234EfGh5678"
-    val jwt = "eyJhbGciOi..." // RS256, signed by your backend
-
-    // 2. Open the Zennopay-hosted checkout
-    Zennopay.openCheckout(
-      activity = this,
-      intentId = intentId,
-      jwt = jwt,
-      returnScheme = "yourapp",
-    ) { result ->
-      when (result) {
-        is PaymentResult.Success -> Log.d("zp", "Captured ${result.intentId}")
-        is PaymentResult.Failure -> Log.e("zp", "Failed: ${result.error}")
-        is PaymentResult.Cancelled -> Log.d("zp", "User cancelled")
-      }
-    }
+dependencyResolutionManagement {
+  repositories {
+    google()
+    mavenCentral()
+    mavenLocal() // until we publish to a remote repo
   }
 }
 ```
 
-The SDK uses Custom Tabs for in-app browser presentation, with a fallback to
-a built-in WebView on devices without Custom Tabs support.
+### Option B — consume via JitPack
 
-## Deep link
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+  repositories {
+    google()
+    mavenCentral()
+    maven(url = "https://jitpack.io")
+  }
+}
 
-Register an intent filter so the SDK can return control to your app:
+// app/build.gradle.kts
+dependencies {
+  implementation("com.github.amanpal108:zennopay-android-sdk:0.1.0")
+}
+```
+
+JitPack page: <https://jitpack.io/#amanpal108/zennopay-android-sdk>
+
+## Register the deep-link callback activity
+
+The SDK cannot register its own intent filter because the return URL scheme is
+partner-defined. Add the following to your `AndroidManifest.xml` inside the
+`<application>` element:
 
 ```xml
-<activity android:name=".CheckoutActivity">
+<activity
+    android:name="com.zennopay.sdk.ZennopayCallbackActivity"
+    android:exported="true"
+    android:launchMode="singleTask"
+    android:theme="@android:style/Theme.NoDisplay">
   <intent-filter>
-    <action android:name="android.intent.action.VIEW" />
-    <category android:name="android.intent.category.DEFAULT" />
-    <category android:name="android.intent.category.BROWSABLE" />
-    <data android:scheme="yourapp" android:host="payment-result" />
+    <action android:name="android.intent.action.VIEW"/>
+    <category android:name="android.intent.category.DEFAULT"/>
+    <category android:name="android.intent.category.BROWSABLE"/>
+    <data android:scheme="yourapp" android:host="payment-result"/>
   </intent-filter>
 </activity>
 ```
 
-Pass the scheme name to `openCheckout(returnScheme = ...)`.
+If you use a different scheme, change both the `<data android:scheme="…">`
+attribute and the `returnScheme` argument to `openCheckout`.
+
+## Quickstart
+
+```kotlin
+import androidx.activity.ComponentActivity
+import com.zennopay.sdk.PaymentResult
+import com.zennopay.sdk.PaymentStatus
+import com.zennopay.sdk.Zennopay
+import com.zennopay.sdk.ZennopayError
+
+class CheckoutActivity : ComponentActivity() {
+
+    private fun startPayment(intentId: String, jwt: String) {
+        Zennopay.openCheckout(
+            activity = this,
+            intentId = intentId,
+            jwt = jwt,
+            returnScheme = "yourapp",
+        ) { result ->
+            when (result) {
+                is PaymentResult.Success -> when (result.status) {
+                    PaymentStatus.SUCCESS  -> showReceipt(result.intentId)
+                    PaymentStatus.PENDING  -> showPending(result.intentId)
+                    PaymentStatus.FAILED   -> showFailure()
+                    PaymentStatus.CANCELED -> showCanceled()
+                }
+                is PaymentResult.Failure -> when (val e = result.error) {
+                    ZennopayError.InvalidJwt            -> reportSdkBug("empty JWT")
+                    ZennopayError.MalformedToken        -> reportSdkBug("malformed JWT")
+                    ZennopayError.IntentMismatch        -> reportSdkBug("JWT bound to wrong intent")
+                    ZennopayError.JwtExpired            -> mintFreshTokenAndRetry()
+                    ZennopayError.InvalidIssuer         -> reportSdkBug("JWT iss missing")
+                    ZennopayError.ReturnUrlMalformed    -> reportSdkBug("bad return URL")
+                    ZennopayError.UserCanceled          -> showCanceled()
+                    ZennopayError.CustomTabsUnavailable -> showInstallBrowserPrompt()
+                    is ZennopayError.NetworkError       -> showRetry(e.cause)
+                }
+            }
+        }
+    }
+}
+```
+
+## Error handling
+
+The SDK's error type is a sealed class — every case is exhaustive in a
+`when` block:
+
+```kotlin
+sealed class ZennopayError {
+    object InvalidJwt            : ZennopayError()
+    object MalformedToken        : ZennopayError()
+    object IntentMismatch        : ZennopayError()
+    object JwtExpired            : ZennopayError()
+    object InvalidIssuer         : ZennopayError()
+    object ReturnUrlMalformed    : ZennopayError()
+    object UserCanceled          : ZennopayError()
+    object CustomTabsUnavailable : ZennopayError()
+    data class NetworkError(val cause: Throwable) : ZennopayError()
+}
+```
+
+The four you are most likely to surface in UI:
+
+| Case | Meaning |
+|---|---|
+| `IntentMismatch` | The JWT's `zennopay:intent_id` claim does not match the `intentId` you passed. Caught before the browser opens. |
+| `JwtExpired` | The JWT's `exp` is in the past (30s clock-skew tolerance). Mint a fresh token from your backend and retry. |
+| `MalformedToken` | Not three segments, undecodable base64, or unparseable JSON. |
+| `InvalidIssuer` | The JWT's `iss` claim is missing or empty. |
+
+All four are surfaced **synchronously** — the SDK fails fast before
+launching the Custom Tab, so a bad token never leaks into a URL.
+
+## How it works
+
+1. The SDK decodes the JWT and verifies its `zennopay:intent_id` claim
+   matches the `intentId` argument. A mismatch raises
+   `ZennopayError.IntentMismatch` immediately — the checkout never opens.
+2. The SDK builds `https://checkout.zennopay.com/flow/<intentId>/scan#token=<jwt>`.
+   The JWT rides in the URL fragment so it never reaches the server in a
+   `Referer` header or proxy log.
+3. The SDK probes for a Custom Tabs provider (Chrome by default). If found,
+   it launches `CustomTabsIntent`. If not, it falls back to `ACTION_VIEW` and
+   logs a warning.
+4. Your supplied callback is held in a single-slot listener.
+5. When checkout redirects to `yourapp://payment-result?intent_id=…&status=…`,
+   Android routes the intent to `ZennopayCallbackActivity`, which parses the
+   query string and invokes your callback exactly once.
 
 ## ProGuard / R8
 
-The SDK ships with consumer ProGuard rules. No additional configuration needed.
+The SDK ships with consumer ProGuard rules. No additional configuration
+needed.

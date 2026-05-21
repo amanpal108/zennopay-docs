@@ -3,74 +3,51 @@ title: "iOS SDK"
 description: "Embed Zennopay checkout in your iOS app."
 ---
 
-<Note>
-  The iOS SDK is in active development. SPM URL below is a placeholder until
-  the public repo is published. 🚧
-</Note>
+The Zennopay iOS SDK is a thin, dependency-free wrapper that hands a payment
+intent off to the Zennopay-hosted checkout. Modeled on the Stripe Checkout
+pattern, it opens the checkout URL in a system browser tab via
+`ASWebAuthenticationSession` — the user always sees a real URL bar and an
+Apple-mediated consent sheet. When checkout completes, the browser redirects
+back to your app via a registered URL scheme and the SDK surfaces a typed
+`PaymentResult`.
 
 ## Requirements
 
-- iOS 15.0+
+- iOS 13.0+
 - Swift 5.9+
 - Xcode 15+
+- Only `Foundation` + `AuthenticationServices` — no third-party dependencies
 
 ## Install via Swift Package Manager
 
-In Xcode: **File → Add Packages…** and enter the package URL:
+In Xcode: **File → Add Package Dependencies…** and paste the repository URL:
 
 ```
 https://github.com/amanpal108/zennopay-ios-sdk
 ```
 
-Pin to a version (e.g. `0.1.0`) for production builds.
+Select **Up to Next Major Version** starting from `0.1.0`, then add the
+`Zennopay` library product to your app target.
 
-Alternatively, add to `Package.swift`:
-
-```swift
-dependencies: [
-  .package(url: "https://github.com/amanpal108/zennopay-ios-sdk", from: "0.1.0")
-]
-```
-
-## Quickstart
+If you maintain your own `Package.swift`, declare:
 
 ```swift
-import Zennopay
-
-// 1. Your backend creates the intent + mints the JWT
-let intentID = "zp_AbCd1234EfGh5678"
-let jwt = "eyJhbGciOi..." // RS256, signed by your backend
-
-// 2. Open the Zennopay-hosted checkout
-Zennopay.openCheckout(
-  intentID: intentID,
-  jwt: jwt,
-  returnScheme: "yourapp"
-) { result in
-  switch result {
-  case .success(let payment):
-    print("Captured: \(payment.intentID)")
-  case .failure(let error):
-    print("Payment failed: \(error)")
-  case .cancelled:
-    print("User cancelled")
-  }
-}
+.package(url: "https://github.com/amanpal108/zennopay-ios-sdk", from: "0.1.0")
 ```
 
-The SDK uses `ASWebAuthenticationSession` under the hood — the user stays in
-your app, sees the system-managed in-app browser sheet, and returns via your
-registered URL scheme.
+and add `"Zennopay"` to your target's `dependencies`.
 
-## URL scheme
+## Register a URL scheme
 
-Register a custom URL scheme in your `Info.plist` so the SDK can return
-control to your app:
+The SDK delivers the payment result by redirecting from the checkout web to a
+URL scheme your app owns. Register it in your `Info.plist`:
 
 ```xml
 <key>CFBundleURLTypes</key>
 <array>
   <dict>
+    <key>CFBundleURLName</key>
+    <string>com.yourapp.payment-result</string>
     <key>CFBundleURLSchemes</key>
     <array>
       <string>yourapp</string>
@@ -79,10 +56,112 @@ control to your app:
 </array>
 ```
 
-Pass that scheme name to `openCheckout(returnScheme:)`.
+The redirect URL the checkout web fires is
+`yourapp://payment-result?intent_id=...&status=...`. You do **not** need to
+handle it in `SceneDelegate` / `AppDelegate` —
+`ASWebAuthenticationSession` captures the callback before it reaches the OS
+routing layer and delivers it directly to the SDK's completion handler.
+
+## Quickstart
+
+```swift
+import Zennopay
+
+// 1. Your backend creates the intent + mints the JWT (RS256, scoped to one intent)
+let intentID = "zp_AbCd1234EfGh5678"
+let jwt = "eyJhbGciOi..."
+
+// 2. Hand off to the Zennopay-hosted checkout
+Zennopay.openCheckout(
+    intentID: intentID,
+    jwt: jwt,
+    returnScheme: "yourapp"
+) { result in
+    switch result {
+    case .success(let payment):
+        print("Payment \(payment.status) for intent \(payment.intentID)")
+    case .failure(let error):
+        print("Error: \(error)")
+    }
+}
+```
+
+The completion handler is delivered on the main queue.
+
+### Async / await
+
+```swift
+do {
+    let result = try await Zennopay.openCheckout(
+        intentID: intentID,
+        jwt: jwt,
+        returnScheme: "yourapp"
+    )
+    print("Payment \(result.status) for intent \(result.intentID)")
+} catch {
+    print("Error: \(error)")
+}
+```
+
+## Result + status
+
+```swift
+public enum PaymentStatus: String {
+    case success, failed, canceled, pending
+}
+
+public struct PaymentResult {
+    public let intentID: String
+    public let status: PaymentStatus
+}
+```
+
+`.pending` means the checkout web could not synchronously confirm the
+outcome (async settlement, payment-network review, etc.). Your backend
+should poll the intent or wait for a webhook for the final state.
 
 ## Error handling
 
-The SDK surfaces three terminal states: `success`, `failure`, `cancelled`.
-For failure cases, the error includes a `request_id` you can pass to
-support@zennopay.com for triage.
+```swift
+public enum ZennopayError: Error {
+    case invalidJWT
+    case malformedToken
+    case intentMismatch
+    case jwtExpired
+    case jwtMissingClaim
+    case userCanceled
+    case returnURLMalformed
+    case presentationAnchorMissing
+    case networkError(Error)
+}
+```
+
+The four errors you are most likely to handle explicitly:
+
+| Case | Meaning |
+|---|---|
+| `intentMismatch` | The JWT's `zennopay:intent_id` claim does not match the `intentID` you passed to `openCheckout`. Caught client-side before the browser opens. |
+| `jwtExpired` | The JWT's `exp` is in the past (30-second clock-skew tolerance). Mint a fresh token from your backend and retry. |
+| `malformedToken` | The JWT is not three segments, the base64 doesn't decode, or the payload isn't a JSON object. |
+| `invalidIssuer` | Reserved for parity with the Android SDK; on iOS, missing-claim cases surface as `jwtMissingClaim`. |
+
+All four are surfaced **synchronously** — the SDK fails fast before opening
+the system browser, so a bad token never leaks into a URL.
+
+## How it works
+
+1. Your backend exchanges its Zennopay API key for a short-lived JWT scoped
+   to one `intent_id`.
+2. Your app calls `Zennopay.openCheckout(...)` with that JWT.
+3. The SDK verifies the JWT's `zennopay:intent_id` claim matches the
+   `intentID` argument before opening the browser. Mismatch raises
+   `ZennopayError.intentMismatch` synchronously.
+4. The SDK opens
+   `https://checkout.zennopay.com/flow/{intent_id}/scan#token={jwt}` in
+   `ASWebAuthenticationSession`. The token rides in the URL **fragment**
+   (after `#`), so it never reaches the HTTP server in logs or proxies.
+5. The user completes (or cancels) checkout in the system browser.
+6. The checkout web redirects to
+   `yourapp://payment-result?intent_id=...&status=...`.
+7. The SDK parses the redirect and calls your completion handler with a
+   `PaymentResult` (or a `ZennopayError`).
