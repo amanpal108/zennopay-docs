@@ -1,0 +1,88 @@
+---
+title: "iOS SDK"
+description: "Embed Zennopay checkout in your iOS app."
+---
+
+<Note>
+  The iOS SDK is in active development. SPM URL below is a placeholder until
+  the public repo is published. 🚧
+</Note>
+
+## Requirements
+
+- iOS 15.0+
+- Swift 5.9+
+- Xcode 15+
+
+## Install via Swift Package Manager
+
+In Xcode: **File → Add Packages…** and enter the package URL:
+
+```
+https://github.com/amanpal108/zennopay-ios-sdk
+```
+
+Pin to a version (e.g. `0.1.0`) for production builds.
+
+Alternatively, add to `Package.swift`:
+
+```swift
+dependencies: [
+  .package(url: "https://github.com/amanpal108/zennopay-ios-sdk", from: "0.1.0")
+]
+```
+
+## Quickstart
+
+```swift
+import Zennopay
+
+// 1. Your backend creates the intent + mints the JWT
+let intentID = "zp_AbCd1234EfGh5678"
+let jwt = "eyJhbGciOi..." // RS256, signed by your backend
+
+// 2. Open the Zennopay-hosted checkout
+Zennopay.openCheckout(
+  intentID: intentID,
+  jwt: jwt,
+  returnScheme: "yourapp"
+) { result in
+  switch result {
+  case .success(let payment):
+    print("Captured: \(payment.intentID)")
+  case .failure(let error):
+    print("Payment failed: \(error)")
+  case .cancelled:
+    print("User cancelled")
+  }
+}
+```
+
+The SDK uses `ASWebAuthenticationSession` under the hood — the user stays in
+your app, sees the system-managed in-app browser sheet, and returns via your
+registered URL scheme.
+
+## URL scheme
+
+Register a custom URL scheme in your `Info.plist` so the SDK can return
+control to your app:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>yourapp</string>
+    </array>
+  </dict>
+</array>
+```
+
+Pass that scheme name to `openCheckout(returnScheme:)`.
+
+## Error handling
+
+The SDK surfaces three terminal states: `success`, `failure`, `cancelled`.
+For failure cases, the error includes a `request_id` you can pass to
+support@zennopay.com for triage.

@@ -1,0 +1,87 @@
+---
+title: "Android SDK"
+description: "Embed Zennopay checkout in your Android app."
+---
+
+<Note>
+  The Android SDK is in active development. Maven Central publish is pending —
+  coordinates below will work once the artifact is published. 🚧
+</Note>
+
+## Requirements
+
+- minSdk 24 (Android 7.0)
+- Kotlin 1.9+
+- AndroidX
+
+## Install via Gradle
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+  repositories {
+    mavenCentral()
+  }
+}
+
+// app/build.gradle.kts
+dependencies {
+  implementation("com.zennopay:sdk:0.1.0")
+}
+```
+
+## Quickstart
+
+```kotlin
+import com.zennopay.Zennopay
+import com.zennopay.PaymentResult
+
+class CheckoutActivity : AppCompatActivity() {
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+
+    // 1. Your backend creates the intent + mints the JWT
+    val intentId = "zp_AbCd1234EfGh5678"
+    val jwt = "eyJhbGciOi..." // RS256, signed by your backend
+
+    // 2. Open the Zennopay-hosted checkout
+    Zennopay.openCheckout(
+      activity = this,
+      intentId = intentId,
+      jwt = jwt,
+      returnScheme = "yourapp",
+    ) { result ->
+      when (result) {
+        is PaymentResult.Success -> Log.d("zp", "Captured ${result.intentId}")
+        is PaymentResult.Failure -> Log.e("zp", "Failed: ${result.error}")
+        is PaymentResult.Cancelled -> Log.d("zp", "User cancelled")
+      }
+    }
+  }
+}
+```
+
+The SDK uses Custom Tabs for in-app browser presentation, with a fallback to
+a built-in WebView on devices without Custom Tabs support.
+
+## Deep link
+
+Register an intent filter so the SDK can return control to your app:
+
+```xml
+<activity android:name=".CheckoutActivity">
+  <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="yourapp" android:host="payment-result" />
+  </intent-filter>
+</activity>
+```
+
+Pass the scheme name to `openCheckout(returnScheme = ...)`.
+
+## ProGuard / R8
+
+The SDK ships with consumer ProGuard rules. No additional configuration needed.

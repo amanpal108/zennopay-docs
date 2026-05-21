@@ -1,0 +1,49 @@
+---
+title: "Corridors"
+description: "Which networks Zennopay supports and how each one works."
+---
+
+A *corridor* is a (origin, destination, rail) triple. v1 covers two
+destination corridors; origin is always a USD wallet held by the partner.
+
+## TH — PromptPay via GLN
+
+- **Corridor code:** `th_gln`
+- **Local rail:** PromptPay (Bank of Thailand's instant payment network)
+- **Provider:** GLN International (Korea-based aggregator)
+- **Settlement currency to merchant:** THB
+- **Refund window:** T+7 (provider-side)
+- **Provider per-tx fee:** 1.0%
+
+PromptPay QR codes are issued by Thai banks to merchants of every size, from
+airport duty-free counters to street stalls. GLN handles the USD → THB FX and
+the final push to the merchant's PromptPay-registered account.
+
+## VN — VietQR via 9pay
+
+- **Corridor code:** `vn_9pay`
+- **Local rail:** VietQR (interbank QR standard governed by NAPAS)
+- **Provider:** 9pay (Vietnam-based payment service provider)
+- **Settlement currency to merchant:** VND
+- **Refund window:** T+1 (provider-side)
+- **Provider per-tx fee:** 0.66%
+
+VietQR is the unified QR standard across Vietnamese banks. 9pay handles USD →
+VND conversion and merchant settlement.
+
+## Choosing a corridor
+
+The corridor is locked when the payment intent is created and is embedded in
+the session JWT. Your app picks the corridor based on which country the user
+is paying in (typically inferred from the QR code itself; partner UX picks
+the corridor *before* the user scans).
+
+## Roadmap
+
+| Corridor | Status |
+|---|---|
+| TH PromptPay (GLN) | Live (v1) |
+| VN VietQR (9pay) | Live (v1) |
+| ID QRIS | Planned |
+| PH InstaPay QR | Planned |
+| MY DuitNow QR | Planned |

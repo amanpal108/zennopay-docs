@@ -1,0 +1,93 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Zennopay",
+  "logo": {
+    "light": "/images/logo-light.svg",
+    "dark": "/images/logo-dark.svg"
+  },
+  "favicon": "/images/favicon.svg",
+  "colors": {
+    "primary": "#0A0F14",
+    "light": "#F0F2F4",
+    "dark": "#0A0F14",
+    "anchors": {
+      "from": "#1B6B2F",
+      "to": "#1B6B2F"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Contact",
+      "url": "mailto:support@zennopay.com"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://dashboard.zennopay.com"
+  },
+  "anchors": [
+    {
+      "name": "API Reference",
+      "icon": "code",
+      "url": "api-reference"
+    },
+    {
+      "name": "SDKs",
+      "icon": "mobile",
+      "url": "sdks"
+    },
+    {
+      "name": "Changelog",
+      "icon": "list",
+      "url": "changelog"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get started",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "authentication"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/overview",
+        {
+          "group": "Payment Intents",
+          "pages": [
+            "api-reference/payment-intents/create",
+            "api-reference/payment-intents/get"
+          ]
+        },
+        "api-reference/webhooks"
+      ]
+    },
+    {
+      "group": "SDKs",
+      "pages": [
+        "sdks/ios",
+        "sdks/android"
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        "concepts/funds-flow",
+        "concepts/corridors",
+        "concepts/settlement"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        "changelog"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "website": "https://zennopay.com"
+  }
+}
