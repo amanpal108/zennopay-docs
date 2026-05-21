@@ -14,9 +14,11 @@ short-lived per-session token on the client side.
 
 ## Server-to-server HMAC
 
-Every request to `https://api.zennopay.com/v1/*` from your backend MUST be
-signed with HMAC-SHA256 and accompanied by four headers, and must originate
-from an allowlisted source IP.
+Every request to the Zennopay REST API (`https://api.zennopay.com/v1/*` in
+production, `https://api.sandbox.zennopay.com/v1/*` in sandbox — see
+[Environments](/api-reference/environments)) from your backend MUST be signed
+with HMAC-SHA256 and accompanied by four headers, and must originate from an
+allowlisted source IP.
 
 ### Required headers
 

@@ -70,10 +70,27 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
 
 ## Example
 
+Examples use the sandbox host. Swap to `https://api.zennopay.com` in
+production. See [Environments](/api-reference/environments).
+
 <CodeGroup>
-```bash cURL
-curl -X POST https://api.zennopay.com/v1/payment_intents \
+```bash Sandbox
+curl -X POST https://api.sandbox.zennopay.com/v1/payment_intents \
   -H "X-Zennopay-Key-Id: wizz_sandbox_2026q2" \
+  -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
+  -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
+  -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount_usd_cents": 345,
+    "corridor": "th_promptpay",
+    "wizz_user_id": "user_abc123"
+  }'
+```
+
+```bash Production
+curl -X POST https://api.zennopay.com/v1/payment_intents \
+  -H "X-Zennopay-Key-Id: wizz_prod_2026q2" \
   -H "X-Zennopay-Timestamp: 2026-05-21T14:30:00Z" \
   -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
   -H "X-Zennopay-Signature: <base64_hmac_sha256>" \

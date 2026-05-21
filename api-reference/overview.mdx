@@ -3,14 +3,21 @@ title: "API Reference"
 description: "REST over HTTPS. JSON in, JSON out. HMAC-signed."
 ---
 
-The Zennopay API lives at:
+The Zennopay API has two environments:
 
-```
+<CodeGroup>
+```bash Production
 https://api.zennopay.com/v1
 ```
 
-Sandbox lives at the same path on a separate environment; sandbox credentials
-are issued during onboarding.
+```bash Sandbox
+https://api.sandbox.zennopay.com/v1
+```
+</CodeGroup>
+
+Sandbox credentials are issued during onboarding. See
+[Environments](/api-reference/environments) for the full URL reference, key
+scoping rules, and the path from sandbox to production.
 
 ## Conventions
 

@@ -13,11 +13,11 @@
   "servers": [
     {
       "url": "https://api.zennopay.com",
-      "description": "Production"
+      "description": "Production — live partner traffic, real money. See /api-reference/environments."
     },
     {
       "url": "https://api.sandbox.zennopay.com",
-      "description": "Sandbox"
+      "description": "Sandbox — integration, QA, demos. Sandbox HMAC keys only."
     }
   ],
   "security": [

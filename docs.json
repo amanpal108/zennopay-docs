@@ -40,6 +40,7 @@
             "group": "API Reference",
             "pages": [
               "api-reference/overview",
+              "api-reference/environments",
               "api-reference/playground",
               {
                 "group": "Payment Intents",
