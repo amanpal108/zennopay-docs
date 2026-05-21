@@ -1,18 +1,38 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "Zennopay",
+  "theme": "venus",
   "logo": {
     "light": "/images/logo-light.svg",
     "dark": "/images/logo-dark.svg"
   },
   "favicon": "/images/favicon.svg",
+  "background": {
+    "style": "windows"
+  },
   "colors": {
-    "primary": "#0A0F14",
-    "light": "#F0F2F4",
-    "dark": "#0A0F14",
+    "primary": "#6560FF",
+    "light": "#c2c1ff",
+    "dark": "#091422",
+    "background": {
+      "light": "#ffffff",
+      "dark": "#091422"
+    },
     "anchors": {
-      "from": "#1B6B2F",
-      "to": "#1B6B2F"
+      "from": "#c2c1ff",
+      "to": "#6560FF"
+    }
+  },
+  "modeToggle": {
+    "default": "dark",
+    "isHidden": false
+  },
+  "font": {
+    "headings": {
+      "family": "Space Grotesk"
+    },
+    "body": {
+      "family": "Inter"
     }
   },
   "topbarLinks": [
@@ -23,7 +43,8 @@
   ],
   "topbarCtaButton": {
     "name": "Dashboard",
-    "url": "https://dashboard.zennopay.com"
+    "url": "https://dashboard.zennopay.com",
+    "style": "pill"
   },
   "anchors": [
     {
