@@ -40,7 +40,7 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
   One of `th_promptpay` (Thailand PromptPay) or `vn_vietqr` (Vietnam VietQR).
 </ParamField>
 
-<ParamField body="partner_user_id" type="string" required>
+<ParamField body="wizz_user_id" type="string" required>
   Your opaque user identifier. Zennopay never sees the underlying user PII;
   this is for your internal correlation.
 </ParamField>
@@ -81,7 +81,7 @@ curl -X POST https://api.zennopay.com/v1/payment_intents \
   -d '{
     "amount_usd_cents": 345,
     "corridor": "th_promptpay",
-    "partner_user_id": "user_abc123"
+    "wizz_user_id": "user_abc123"
   }'
 ```
 </CodeGroup>
