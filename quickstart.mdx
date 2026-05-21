@@ -37,7 +37,7 @@ curl -X POST https://api.zennopay.com/v1/payment_intents \
   -H "X-Zennopay-Nonce: a1b2c3d4e5f6789012345678abcdef00" \
   -H "X-Zennopay-Signature: <base64_hmac_sha256>" \
   -H "Content-Type: application/json" \
-  -d '{"amount_usd_cents":345,"corridor":"th_gln"}'
+  -d '{"amount_usd_cents":345,"corridor":"th_promptpay"}'
 ```
 
 ```typescript Node
@@ -48,7 +48,7 @@ const method = "POST";
 const path = "/v1/payment_intents";
 const timestamp = new Date().toISOString();
 const nonce = crypto.randomBytes(16).toString("hex");
-const body = JSON.stringify({ amount_usd_cents: 345, corridor: "th_gln" });
+const body = JSON.stringify({ amount_usd_cents: 345, corridor: "th_promptpay" });
 const bodyHash = crypto.createHash("sha256").update(body).digest("hex");
 
 const canonical = [method, path, timestamp, nonce, bodyHash].join("\n");
@@ -75,7 +75,7 @@ You should receive a `200 OK` with an `intent_id`:
   "intent_id": "zp_AbCd1234EfGh5678",
   "status": "created",
   "amount_usd_cents": 345,
-  "corridor": "th_gln"
+  "corridor": "th_promptpay"
 }
 ```
 
@@ -94,7 +94,7 @@ complete one intent. The session expires in 10 minutes max.
   "jti": "0190a8b3-4c5d-7e6f-8a9b-c0d1e2f3a4b5",
   "zennopay:intent_id": "zp_AbCd1234EfGh5678",
   "zennopay:amount_usd_cents": 345,
-  "zennopay:corridor": "th_gln",
+  "zennopay:corridor": "th_promptpay",
   "zennopay:kyc_attestation": {
     "verified": true,
     "method": "your_kyc_v2",
@@ -153,7 +153,7 @@ shape and signature verification steps.
 |---|---|---|
 | 401 | `authentication_failed` | Bad HMAC signature, expired timestamp, replayed nonce, or IP not in allowlist |
 | 401 | `jwt_invalid` | JWT signature, audience, expiry, or `jti` (replay) check failed |
-| 400 | `invalid_corridor` | Corridor must be `th_gln` or `vn_9pay` |
+| 400 | `invalid_corridor` | Corridor must be `th_promptpay` or `vn_vietqr` |
 | 422 | `amount_below_minimum` | Minimum transaction value not met for the corridor |
 
 All 401s use a generic message in the response body. Use the `request_id`

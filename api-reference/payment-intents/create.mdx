@@ -37,7 +37,7 @@ All requests must be HMAC-signed. See [Authentication](/authentication).
 </ParamField>
 
 <ParamField body="corridor" type="string" required>
-  One of `th_gln` (Thailand via GLN) or `vn_9pay` (Vietnam via 9pay).
+  One of `th_promptpay` (Thailand PromptPay) or `vn_vietqr` (Vietnam VietQR).
 </ParamField>
 
 <ParamField body="partner_user_id" type="string" required>
@@ -80,7 +80,7 @@ curl -X POST https://api.zennopay.com/v1/payment_intents \
   -H "Content-Type: application/json" \
   -d '{
     "amount_usd_cents": 345,
-    "corridor": "th_gln",
+    "corridor": "th_promptpay",
     "partner_user_id": "user_abc123"
   }'
 ```
@@ -91,7 +91,7 @@ curl -X POST https://api.zennopay.com/v1/payment_intents \
   "intent_id": "zp_AbCd1234EfGh5678",
   "status": "created",
   "amount_usd_cents": 345,
-  "corridor": "th_gln",
+  "corridor": "th_promptpay",
   "created_at": "2026-05-21T14:30:00Z"
 }
 ```

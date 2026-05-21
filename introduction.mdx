@@ -13,10 +13,10 @@ At v1 we cover two corridors:
 
 <CardGroup cols={2}>
   <Card title="Thailand" icon="flag" href="/concepts/corridors">
-    PromptPay QR via GLN International. THB settlement.
+    PromptPay QR. THB settlement.
   </Card>
   <Card title="Vietnam" icon="flag" href="/concepts/corridors">
-    VietQR via 9pay. VND settlement.
+    VietQR. VND settlement.
   </Card>
 </CardGroup>
 
@@ -41,9 +41,9 @@ At v1 we cover two corridors:
    specific user + intent.
 4. Partner app opens the Zennopay SDK with the `intent_id` + JWT.
 5. The user scans the merchant QR, confirms the amount, and slides to pay.
-6. Zennopay debits the partner's pre-funded USD float, instructs the local
-   payout provider (GLN for TH, 9pay for VN), and the merchant receives
-   local currency.
+6. Zennopay debits the partner's pre-funded USD float, routes the transaction
+   to its licensed payout partner network for the destination corridor, and
+   the merchant receives local currency.
 7. Zennopay sends the partner a webhook with the final status.
 
 The full sequence is documented in [Authentication →](/authentication) under

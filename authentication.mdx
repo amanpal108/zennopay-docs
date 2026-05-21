@@ -165,7 +165,7 @@ Use these to validate your client implementation before sending real traffic.
 | Path | `/v1/payment_intents` |
 | Timestamp | `2026-05-21T14:30:00Z` |
 | Nonce | `a1b2c3d4e5f6789012345678abcdef00` |
-| Body | `{"amount_usd":3.45,"corridor":"th_gln"}` |
+| Body | `{"amount_usd":3.45,"corridor":"th_promptpay"}` |
 
 Expected canonical request:
 
@@ -238,7 +238,7 @@ All JWTs MUST include these claims. Missing any field = rejected.
 | `nbf` | integer | Not-before. Optional. |
 | `zennopay:intent_id` | string | Zennopay intent ID this JWT authorizes. Format `zp_...`. |
 | `zennopay:amount_usd_cents` | integer | Authorized amount in USD cents. |
-| `zennopay:corridor` | string | `"th_gln"` or `"vn_9pay"`. Locks the route at issuance. |
+| `zennopay:corridor` | string | `"th_promptpay"` or `"vn_vietqr"`. Locks the route at issuance. |
 | `zennopay:kyc_attestation` | object | `{ "verified": true, "method": "...", "verified_at": "..." }` |
 | `zennopay:sanctions_attestation` | object | `{ "clean": true, "screened_at": "..." }` |
 
@@ -257,7 +257,7 @@ collision with future standard claims.
   "jti": "0190a8b3-4c5d-7e6f-8a9b-c0d1e2f3a4b5",
   "zennopay:intent_id": "zp_AbCd1234EfGh5678",
   "zennopay:amount_usd_cents": 345,
-  "zennopay:corridor": "th_gln",
+  "zennopay:corridor": "th_promptpay",
   "zennopay:kyc_attestation": {
     "verified": true,
     "method": "your_kyc_v2",

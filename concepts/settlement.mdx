@@ -3,21 +3,21 @@ title: "Settlement & reconciliation"
 description: "How money moves daily, and how mismatches get resolved."
 ---
 
-Zennopay runs daily settlement against both payout providers and a daily
-reconciliation pass against the partner FBO. Everything balances by end of
-day, or it lands in a break queue for ops review.
+Zennopay runs daily settlement against each corridor's payout partner and a
+daily reconciliation pass against the partner FBO. Everything balances by
+end of day, or it lands in a break queue for ops review.
 
 ## The daily cycle
 
 ```text
 Throughout the day:
-  - Transactions debit Partner FBO; provider success drains the
+  - Transactions debit Partner FBO; payout-partner success drains the
     pre-funded receivable; margin accrues in `receivables.zennopay.margin`.
 
 End of business day (UTC):
-  1. Margin sweep:  Partner FBO  ───($X total margin)──>  Zennopay commercial
-  2. GLN top-up:    Zennopay commercial  ──(refill float)──>  GLN pre-fund
-  3. 9pay top-up:   Zennopay commercial  ──(refill float)──>  9pay pre-fund
+  1. Margin sweep:    Partner FBO  ───($X total margin)──>  Zennopay commercial
+  2. TH top-up:       Zennopay commercial  ──(refill float)──>  TH payout-partner pre-fund
+  3. VN top-up:       Zennopay commercial  ──(refill float)──>  VN payout-partner pre-fund
   4. Reconciliation pass (see below)
   5. Clearing accounts MUST be $0 — non-zero = ops investigates
 ```
@@ -39,10 +39,12 @@ delta is a break.
 per-user-attributed sub-balances Zennopay tracks internally. Drift here is
 a **serious incident** — partner funds must always be fully accounted for.
 
-### 3. Provider pre-funding match
+### 3. Payout-partner pre-funding match
 
-`receivables.gln.pre_funded` (Zennopay's ledger) must match GLN's reported
-pre-funding balance from their daily settlement CSV. Same for 9pay.
+For each corridor, `receivables.payout_partner.<corridor>` (Zennopay's
+ledger) must match the payout partner's reported pre-funding balance from
+the daily settlement record. Drift outside the per-transaction threshold
+goes to the ops break queue.
 
 Threshold for break: **\$0.01 per transaction**. Anything below that is
 absorbed; anything above goes to the ops break queue.
@@ -64,9 +66,9 @@ Compared against the contract; mismatches indicate a clock or schedule bug.
 
 ## Stuck transactions
 
-If a transaction is stuck mid-flow — provider API timed out, no confirmation
-either way — Zennopay holds the entry in `clearing.in_flight` and runs a
-status-query against the provider's API periodically.
+If a transaction is stuck mid-flow — payout-partner API timed out, no
+confirmation either way — Zennopay holds the entry in `clearing.in_flight`
+and runs a status-query against the payout partner's API periodically.
 
 If still ambiguous after 24 hours, the transaction escalates to manual ops
 review. The partner sees the intent in `processing` state until resolved;
@@ -76,7 +78,7 @@ the SDK surfaces "pending" to the end user.
 
 | Cadence | What happens |
 |---|---|
-| **Daily** | The five reconciliation checks above; clearing accounts zeroed; provider drawdowns top up |
+| **Daily** | The five reconciliation checks above; clearing accounts zeroed; payout-partner drawdowns top up |
 | **Monthly** | Commitment accruals trued up; partner statements + invoices generated; bank statements reconciled |
 | **Quarterly** | Tax provisioning; provider commitment tier recalculation |
 | **Annually** | Audit prep; full event log made available for replay |
@@ -84,12 +86,12 @@ the SDK surfaces "pending" to the end user.
 ## Reports the partner receives
 
 - **Daily transaction summary** — per-corridor gross TPV, gross margin,
-  provider fees, net margin, recon-break count.
+  pass-through fees, net margin, recon-break count.
 - **Monthly statement** — P&L-style summary for the period.
 - **Monthly invoice** — commitment fees due (if any), with a margin-collected
   reference summary.
-- **Reconciliation report (per corridor)** — provider CSV vs Zennopay's
-  ledger, with any flagged discrepancies.
+- **Reconciliation report (per corridor)** — downstream settlement record vs
+  Zennopay's ledger, with any flagged discrepancies.
 
 ## Audit trail
 
@@ -106,6 +108,6 @@ All USD values are stored as integer cents internally (`amount_cents`
 columns in Postgres) to avoid floating-point drift. The API returns
 `amount_usd_cents` for the same reason — see [API conventions](/api-reference/overview).
 
-Sub-cent discrepancies from provider FX (sub-$0.01 per transaction) are
+Sub-cent discrepancies from corridor FX (sub-$0.01 per transaction) are
 swept to a recon write-off account at EOD; the cumulative amount is tracked
 and surfaced on monthly reports.
