@@ -76,6 +76,7 @@
       "group": "API Reference",
       "pages": [
         "api-reference/overview",
+        "api-reference/playground",
         {
           "group": "Payment Intents",
           "pages": [
@@ -83,7 +84,8 @@
             "api-reference/payment-intents/get"
           ]
         },
-        "api-reference/webhooks"
+        "api-reference/webhooks",
+        "api-reference/jwt-inspector"
       ]
     },
     {
